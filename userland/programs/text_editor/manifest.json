@@ -1,0 +1,89 @@
+{
+  "manifest_version": 2,
+  "package_id": "com.gpt-os.text_editor",
+  "name": "Text Editor",
+  "version": "2.0.0",
+  "version_code": 20,
+  
+  "description": "Advanced text editor with syntax highlighting and code completion",
+  "author": "GPT-OS Team",
+  "license": "GPL-3.0",
+  "website": "https://gpt-os.dev/text-editor",
+  
+  "type": "application",
+  
+  "requirements": {
+    "min_memory_mb": 16,
+    "min_disk_mb": 50,
+    "min_gpt_version": "2.0.0",
+    "min_api_level": 10
+  },
+  
+  "supported_formats": [
+    ".txt", ".c", ".cpp", ".h", ".hpp",
+    ".py", ".js", ".java", ".cs",
+    ".html", ".css", ".json", ".xml",
+    ".sh", ".conf", ".cfg", ".ini"
+  ],
+  
+  "dependencies": [
+    {
+      "package": "com.gpt-os.stdlib",
+      "version": ">=1.0.0"
+    },
+    {
+      "package": "com.gpt-os.ui-lib",
+      "version": ">=2.0.0"
+    },
+    {
+      "package": "com.gpt-os.graphics",
+      "version": ">=1.5.0"
+    }
+  ],
+  
+  "permissions": [
+    "filesystem.read",
+    "filesystem.write",
+    "clipboard.read",
+    "clipboard.write",
+    "display.render"
+  ],
+  
+  "entry_point": {
+    "main_class": "TextEditor",
+    "main_function": "text_editor_main",
+    "window_width": 1024,
+    "window_height": 768
+  },
+  
+  "features": {
+    "syntax_highlighting": true,
+    "code_completion": true,
+    "find_replace": true,
+    "undo_redo": true,
+    "themes": true,
+    "plugins": true
+  },
+  
+  "files": {
+    "icon": "resources/icon.png",
+    "splash": "resources/splash.png",
+    "main_executable": "bin/text_editor.so"
+  },
+  
+  "metadata": {
+    "category": "productivity",
+    "tags": ["editor", "development", "text"],
+    "install_date": 0,
+    "update_date": 0,
+    "rating": 4.8,
+    "downloads": 50000,
+    "is_system_app": false,
+    "is_required": false,
+    "is_enabled": true,
+    "is_visible": true,
+    "is_removable": true,
+    "allow_updates": true,
+    "allow_downgrade": false
+  }
+}

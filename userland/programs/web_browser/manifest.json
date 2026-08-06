@@ -1,0 +1,54 @@
+{
+  "manifest_version": 2,
+  "package_id": "com.gpt-os.web_browser",
+  "name": "Web Browser",
+  "version": "1.0.0",
+  "description": "Simple web browser with HTML/CSS rendering",
+  "author": "GPT-OS Team",
+  "type": "application",
+  
+  "requirements": {
+    "min_memory_mb": 128,
+    "min_disk_mb": 100,
+    "min_gpt_version": "2.0.0"
+  },
+  
+  "supported_formats": [
+    ".html", ".htm", ".xhtml",
+    ".css", ".xml", ".json"
+  ],
+  
+  "dependencies": [
+    {"package": "com.gpt-os.stdlib", "version": ">=1.0.0"},
+    {"package": "com.gpt-os.ui-lib", "version": ">=2.0.0"},
+    {"package": "com.gpt-os.network", "version": ">=1.0.0"}
+  ],
+  
+  "permissions": [
+    "filesystem.read",
+    "network.socket",
+    "display.render",
+    "memory.large"
+  ],
+  
+  "entry_point": {
+    "main_function": "web_browser_main",
+    "window_width": 1280,
+    "window_height": 1024
+  },
+  
+  "features": {
+    "html5": false,
+    "css3": false,
+    "javascript": false,
+    "https": false,
+    "cookies": true,
+    "cache": true
+  },
+  
+  "metadata": {
+    "category": "internet",
+    "is_system_app": false,
+    "allow_updates": true
+  }
+}

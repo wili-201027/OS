@@ -1,0 +1,54 @@
+{
+  "manifest_version": 2,
+  "package_id": "com.gpt-os.media_player",
+  "name": "Media Player",
+  "version": "3.0.0",
+  "description": "Play audio and video files with advanced controls",
+  "author": "GPT-OS Team",
+  "type": "application",
+  
+  "requirements": {
+    "min_memory_mb": 64,
+    "min_disk_mb": 150,
+    "min_gpt_version": "2.0.0"
+  },
+  
+  "supported_formats": {
+    "audio": [".mp3", ".wav", ".ogg", ".flac", ".aac", ".opus"],
+    "video": [".mp4", ".avi", ".mkv", ".mov", ".webm", ".flv"]
+  },
+  
+  "dependencies": [
+    {"package": "com.gpt-os.stdlib", "version": ">=1.0.0"},
+    {"package": "com.gpt-os.ui-lib", "version": ">=2.0.0"},
+    {"package": "com.gpt-os.audio-engine", "version": ">=1.0.0"},
+    {"package": "com.gpt-os.video-engine", "version": ">=1.0.0"}
+  ],
+  
+  "permissions": [
+    "filesystem.read",
+    "display.render",
+    "audio.output",
+    "memory.large"
+  ],
+  
+  "entry_point": {
+    "main_function": "media_player_main",
+    "window_width": 960,
+    "window_height": 720
+  },
+  
+  "features": {
+    "playlist": true,
+    "shuffle_repeat": true,
+    "equalizer": true,
+    "subtitles": true,
+    "streaming": false
+  },
+  
+  "metadata": {
+    "category": "multimedia",
+    "is_system_app": false,
+    "allow_updates": true
+  }
+}

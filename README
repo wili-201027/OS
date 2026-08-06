@@ -1,0 +1,110 @@
+os/
+├── boot/
+│   ├── uefi/
+│   │   ├── bootx64.c
+│   │   ├── elf_loader.c
+│   │   ├── memory_map.c
+│   │   ├── paging_early.S
+│   │   └── linker.ld
+│   ├── bios/
+│   │   ├── mbr.S
+│   │   ├── stage2.S
+│   │   └── multiboot2.S
+│
+├── kernel/
+│   ├── arch/x86_64/
+│   │   ├── gdt.c
+│   │   ├── idt.c
+│   │   ├── tss.c
+│   │   ├── apic.c
+│   │   ├── smp.c
+│   │   ├── context_switch.S
+│   │   ├── syscall.S
+│   │   ├── paging.c
+│   │   └── traps.c
+│   │
+│   ├── mm/
+│   │   ├── pmm.c          # physical memory manager (buddy + bitmap hybrid)
+│   │   ├── vmm.c          # per-process address spaces
+│   │   ├── slab.c
+│   │   └── numa.c
+│   │
+│   ├── sched/
+│   │   ├── scheduler.c   # CFS-inspired + RT lanes
+│   │   ├── runqueue.c
+│   │   └── cpu_local.c
+│   │
+│   ├── ipc/
+│   │   ├── ports.c
+│   │   ├── channels.c
+│   │   ├── shared_memory.c
+│   │   └── capabilities.c
+│   │
+│   ├── fs/
+│   │   ├── vfs.c
+│   │   ├── ramfs.c
+│   │   ├── initrd.c
+│   │   ├── fat32.c
+│   │   └── ext2.c
+│   │
+│   ├── drivers/
+│   │   ├── pci.c
+│   │   ├── acpi.c
+│   │   ├── ps2.c
+│   │   ├── framebuffer.c
+│   │   ├── ahci.c
+│   │   └── net/
+│   │       ├── nic.c
+│   │       └── stack.c
+│   │
+│   ├── object/
+│   │   ├── elf64.c
+│   │   └── loader.c
+│   │
+│   ├── kernel.cpp
+│   └── panic.c
+│
+├── userland/
+│   ├── init/
+│   │   └── init.cpp
+│   ├── compositor/
+│   │   ├── scene_graph.cpp
+│   │   ├── window_manager.cpp
+│   │   ├── input_router.cpp
+│   │   └── glass_renderer.cpp
+│   ├── servers/
+│   │   ├── fs_server.cpp
+│   │   ├── device_server.cpp
+│   │   ├── quantum_server.cpp
+│   │   └── gpu_server.cpp
+│   └── libc/
+│       ├── syscalls.c
+│       ├── malloc.c
+│       └── crt0.S
+│
+├── build/
+│   ├── toolchain.mk
+│   ├── kernel.mk
+│   ├── userland.mk
+│   ├── iso.mk
+│   └── scripts/
+│       ├── generate_syscalls.py
+│       ├── symbol_map.py
+│       └── link_order.py
+│
+├── Makefile
+└── iso/
+
+
+# 1. Limpia todo rastro anterior
+rm -rf build/obj/* build/kernel.elf
+
+# 2. Compila el proyecto
+make -f build/kernel.mk all
+
+# 3. Verifica el nuevo 'File off'
+/c/opt/cross/bin/x86_64-elf-objdump -h build/kernel.elf
+
+qemu-system-x86_64 -cdrom D:/VSC/GPT_OS/os/build/os.iso -m 2G -vga std -d int,cpu_reset -no-reboot -no-shutdown
+qemu-system-x86_64 -cdrom build/os.iso -m 2G -vga std -serial stdio -no-reboot -no-shutdown
+qemu-system-x86_64 -cdrom D:/VSC/GPT_OS/os/build/os.iso -m 2G -vga std -serial stdio -no-reboot -no-shutdown

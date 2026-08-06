@@ -1,0 +1,61 @@
+{
+  "manifest_version": 2,
+  "package_id": "com.gpt-os.image_viewer",
+  "name": "Image Viewer",
+  "version": "1.5.0",
+  "description": "View images with zoom, rotation and filters",
+  "author": "GPT-OS Team",
+  "type": "application",
+  
+  "requirements": {
+    "min_memory_mb": 32,
+    "min_disk_mb": 80,
+    "min_gpt_version": "2.0.0"
+  },
+  
+  "supported_formats": [
+    ".bmp", ".dib",
+    ".png", ".apng",
+    ".jpg", ".jpeg", ".jpe", ".jfif",
+    ".gif", ".webp",
+    ".ico", ".tiff"
+  ],
+  
+  "dependencies": [
+    {
+      "package": "com.gpt-os.stdlib",
+      "version": ">=1.0.0"
+    },
+    {
+      "package": "com.gpt-os.ui-lib",
+      "version": ">=2.0.0"
+    }
+  ],
+  
+  "permissions": [
+    "filesystem.read",
+    "display.render",
+    "memory.large"
+  ],
+  
+  "entry_point": {
+    "main_function": "image_viewer_main",
+    "window_width": 1280,
+    "window_height": 1024
+  },
+  
+  "features": {
+    "zoom": true,
+    "rotation": true,
+    "filters": true,
+    "slideshow": true,
+    "batch_processing": false
+  },
+  
+  "metadata": {
+    "category": "graphics",
+    "is_system_app": false,
+    "is_required": false,
+    "allow_updates": true
+  }
+}

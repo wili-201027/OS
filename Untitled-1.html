@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Window UI - Center Anchored Collapse</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            height: 100vh;
+            width: 100vw;
+            background-color: white;
+            overflow: hidden; 
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        :root {
+            --header-h: 35px;
+            --footer-h: 25px;
+            --collapsed-h: calc(var(--header-h) + var(--footer-h));
+            /* Centralizamos la curva de animación para mantener coherencia */
+            --bezier-curve: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .window-container {
+            position: absolute;
+            background-color: transparent;
+            border: 1px solid rgb(28, 170, 218);
+            border-radius: 6px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            display: none; 
+            flex-direction: column;
+            overflow: hidden;
+            
+            /* Preparar aceleración de hardware para top y height */
+            will-change: height, left, top;
+        }
+
+        header.window-header {
+            background-color: rgb(28, 170, 218);
+            color: #ccc;
+            height: var(--header-h);
+            flex-shrink: 0; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            cursor: grab;
+            user-select: none;
+            border-bottom: 1px solid #333;
+        }
+        header.window-header:active { cursor: grabbing; }
+
+        .header-controls-left {
+            display: flex;
+            gap: 15px;
+        }
+        .text-btn {
+            background-color: rgb(45, 45, 77);
+            border-radius: 18px;
+            padding: 2px;
+            border: none;
+            width: 90px;
+            color: lightblue;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .text-btn:hover { color: white; background-color:lightblue; }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #aaa;
+        }
+        
+        .switch-btn {
+            position: relative;
+            width: 36px;
+            height: 18px;
+            background-color: rgb(45, 45, 77); 
+            border-radius: 2px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .switch-btn::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            background-color: rgb(126, 126, 255);
+            border-radius: 2%;
+            transform: translateX(-18px);
+            transition: transform 0.3s var(--bezier-curve);
+        }
+        
+        .switch-btn.off { background-color: rgb(0, 204, 255); }
+        .switch-btn.off::after { transform: translateX(0px); background-color: rgb(0, 204, 255);}
+
+        .window-body {
+            display: flex;
+            flex: 1 1 0%;       
+            min-height: 0;      
+            background-color: #f5f5f5;
+        }
+
+        .lateral-border {
+            width: 5px;
+            background-color: rgb(28, 170, 218);
+        }
+
+        main {
+            flex: 1 1 0%;
+            min-height: 0;      
+            padding: 25px;
+            overflow-y: auto;
+            color: #333;
+        }
+
+        footer.window-footer {
+            background-color: rgb(28, 170, 218);
+            height: var(--footer-h);
+            flex-shrink: 0; 
+            border-top: 1px solid blue;
+        }
+
+        .left{border-right: 1px solid blue;}
+        .right{border-left: 1px solid blue}
+    </style>
+</head>
+<body>
+
+    <div class="window-container" id="app-window"> 
+        <header class="window-header" id="window-header">
+            <div class="header-controls-left">
+                <button class="text-btn" id="maxbtn">Maximizar</button>
+                <button class="text-btn" id="minbtn">Minimizar</button>
+            </div>
+            
+            <div class="switch-container">
+                <button class="switch-btn" id="btn-close" aria-label="Cerrar/Apagar"></button>
+            </div>
+        </header>
+
+        <div class="window-body">
+            <aside class="lateral-border left"></aside>
+            <main>
+                <h1 style="margin-bottom: 15px;">Este es el contenido de las ventanas</h1>
+                <p>Aqui va todo el contenido de esta ventana</p>
+            </main>
+            <aside class="lateral-border right"></aside>
+        </div>
+
+        <footer class="window-footer" id="window-footer"></footer>
+    </div>
+
+    <script>
+        const appWindow = document.getElementById("app-window");
+        const header = document.getElementById("window-header");
+        const footer = document.getElementById("window-footer");
+        const btnClose = document.getElementById("btn-close");
+
+        let isClosed = false;
+
+        /**
+         * Obtiene dinámicamente la altura colapsada leyendo el CSS
+         * Esto previene bugs si en el futuro cambias el alto del header o footer
+         */
+        function getCollapsedHeight() {
+            const rootStyles = getComputedStyle(document.documentElement);
+            const headerH = parseInt(rootStyles.getPropertyValue('--header-h'));
+            const footerH = parseInt(rootStyles.getPropertyValue('--footer-h'));
+            return headerH + footerH;
+        }
+
+        async function spawnSequence(targetW, targetH) {
+            const collapsedH = getCollapsedHeight();
+            
+            // 1. Calculamos las coordenadas para la ventana final (expandida)
+            const finalLeft = (window.innerWidth - targetW) / 2;
+            const finalTop = (window.innerHeight - targetH) / 2;
+            
+            // 2. Calculamos la coordenada 'top' inicial para que arranque desde el centro exacto
+            const initialTop = finalTop + ((targetH - collapsedH) / 2);
+
+            // Fase 1: Inyección instantánea en estado colapsado (SIN ANIMACIÓN)
+            appWindow.style.transition = 'none';
+            appWindow.style.display = 'flex';
+            appWindow.style.width = `${targetW}px`;
+            appWindow.style.height = `${collapsedH}px`; 
+            appWindow.style.left = `${finalLeft}px`;
+            appWindow.style.top = `${initialTop}px`; // Centrado geográfico
+            
+            // Forzamos al motor C++ a renderizar este frame
+            void appWindow.offsetHeight;
+
+            await delay(500);
+
+            // Fase 2: Aplicamos la transición a ambas propiedades físicas
+            appWindow.style.transition = 'height 0.6s var(--bezier-curve), top 0.6s var(--bezier-curve)';
+            
+            // Disparamos la expansión
+            appWindow.style.height = `${targetH}px`;
+            appWindow.style.top = `${finalTop}px`;
+        }
+
+        async function closeSequence() {
+            if (isClosed) return;
+            isClosed = true;
+
+            btnClose.classList.add("off");
+            await delay(150)
+
+            // 1. Capturamos las dimensiones y posición EXACTAS en este momento.
+            // Esto es crucial porque el usuario podría haber arrastrado la ventana a otra zona.
+            const rect = appWindow.getBoundingClientRect();
+            const currentH = rect.height;
+            const currentTop = rect.top;
+            
+            const collapsedH = getCollapsedHeight();
+
+            // 2. Calculamos el nuevo 'top' sumando la mitad de la diferencia de altura.
+            // Esto obliga al contenedor a "encogerse" hacia su propio centro de gravedad.
+            const targetTop = currentTop + ((currentH - collapsedH) / 2);
+
+            // 3. Ejecutamos la transición vectorial
+            appWindow.style.transition = 'height 0.5s var(--bezier-curve), top 0.5s var(--bezier-curve)';
+            appWindow.style.height = `${collapsedH}px`;
+            appWindow.style.top = `${targetTop}px`;
+
+
+            // Capturamos el final de la animación para limpiar el DOM
+            appWindow.addEventListener('transitionend', async function handler(e) {
+                if (e.propertyName === 'height') {
+                    await delay(250);
+                    appWindow.style.display = 'none'; 
+                    appWindow.removeEventListener('transitionend', handler);
+                }
+            });
+        }
+
+        // --- SISTEMA DE DRAG AND DROP ---
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        function initDragAndDrop() {
+            header.addEventListener("mousedown", (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('.switch-container')) return; 
+                
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                const rect = appWindow.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+                
+                e.preventDefault(); 
+            });
+
+            document.addEventListener("mousemove", (e) => {
+                if (!isDragging) return;
+                let newLeft = initialLeft + (e.clientX - startX);
+                let newTop = initialTop + (e.clientY - startY);
+                if (newTop < 0) newTop = 0;
+                
+                // Aplicamos la posición de forma directa (saltando la animación)
+                appWindow.style.transition = 'none';
+                appWindow.style.left = `${newLeft}px`;
+                appWindow.style.top = `${newTop}px`;
+            });
+
+            document.addEventListener("mouseup", () => isDragging = false);
+        }
+
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // --- INICIALIZACIÓN ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            await delay(1000);
+            initDragAndDrop();
+            btnClose.addEventListener("click", closeSequence);
+
+            const optimalWidth = Math.min(1000, window.innerWidth * 0.8);
+            const optimalHeight = Math.min(600, window.innerHeight * 0.8);
+
+            footer.style.height = header.style.height;
+            
+            spawnSequence(optimalWidth, optimalHeight);
+        });
+    </script>
+</body>
+</html>
