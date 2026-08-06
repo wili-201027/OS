@@ -49,7 +49,14 @@ static bool ensure_back_buffer(uint32_t w, uint32_t h) {
     }
     
     // Allocate new buffer
-    uint32_t size = w * h * sizeof(uint32_t);
+    uint64_t pixel_count = (uint64_t)w * (uint64_t)h;
+    uint64_t size64 = pixel_count * (uint64_t)sizeof(uint32_t);
+    if (size64 > 0xFFFFFFFFu) {
+        s_back_w = 0;
+        s_back_h = 0;
+        return false;
+    }
+    uint32_t size = (uint32_t)size64;
     s_back_buffer = (uint32_t*)malloc(size);
     
     if (s_back_buffer) {
