@@ -263,7 +263,13 @@ int decode_png(const char *filename, Image *img)
     // Asignar píxeles (para PNG sin descompresión: usar patrón de color)
     img->width = width ? width : 100;
     img->height = height ? height : 100;
-    img->pixels = (uint32_t*)malloc(img->width * img->height * sizeof(uint32_t));
+    size_t pixel_count = (size_t)img->width * (size_t)img->height;
+    if(pixel_count > ((size_t)-1) / sizeof(uint32_t)) {
+        syscall_close(fd);
+        return -1;
+    }
+    size_t pixel_bytes = pixel_count * sizeof(uint32_t);
+    img->pixels = (uint32_t*)malloc(pixel_bytes);
     
     if(!img->pixels) {
         syscall_close(fd);
