@@ -5,10 +5,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // ── Memòria ───────────────────────────────────────────────────────────────────
 void paging_enable(void) {}
 void heap_init(void)     {}
@@ -145,7 +141,3 @@ void sys_sleep_ms(uint32_t ms) {
     // Aproximació: ~100k cicles per ms a 100MHz virtual de QEMU
     for(uint32_t i=0; i<ms*1000; ++i) asm volatile("pause");
 }
-
-#ifdef __cplusplus
-}
-#endif

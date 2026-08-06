@@ -2,9 +2,11 @@
 // Integración del Gestor de Archivos en el compositor
 
 #include "window_manager.h"
-#include "file_manager.h"
-#include "file_types.h"
-#include "app_launcher.h"
+#include "../file_manager/file_manager.h"
+#include "../file_manager/file_types.h"
+#include "../app_launcher/app_launcher.h"
+#include "../libc/string.h"
+#include "../libc/stdio.h"
 
 extern uint32_t  fb_get_width(void);
 extern uint32_t  fb_get_height(void);

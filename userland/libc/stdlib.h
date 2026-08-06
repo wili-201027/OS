@@ -5,6 +5,7 @@
 #define USERLAND_STDLIB_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 // Memory allocation
 void *malloc(size_t size);
@@ -15,6 +16,10 @@ void *calloc(size_t nmemb, size_t size);
 // Exit and control
 void exit(int status);
 void abort(void);
+
+// Threading and task control
+int sys_thread_create(void *entry, void *arg, void *stack_bottom, uint64_t stack_size);
+void sys_thread_exit(int exit_code);
 
 // String conversion
 static inline int atoi(const char *str) {

@@ -9,6 +9,44 @@
 // ─── Forward declarations ──────────────────────────────────────────
 extern uint64_t scheduler_get_ticks(void);
 
+static void pm_parse_json_string(char *out, size_t maxlen, const char *buffer, const char *key)
+{
+    if(!out || maxlen == 0 || !buffer || !key) return;
+
+    const char *key_pos = strstr(buffer, key);
+    if(!key_pos) {
+        out[0] = '\0';
+        return;
+    }
+
+    const char *colon = strchr(key_pos, ':');
+    if(!colon) {
+        out[0] = '\0';
+        return;
+    }
+
+    const char *quote = strchr(colon, '"');
+    if(!quote) {
+        out[0] = '\0';
+        return;
+    }
+
+    quote++;
+    const char *end = strchr(quote, '"');
+    if(!end) {
+        out[0] = '\0';
+        return;
+    }
+
+    size_t len = end - quote;
+    if(len >= maxlen) {
+        len = maxlen - 1;
+    }
+
+    memcpy(out, quote, len);
+    out[len] = '\0';
+}
+
 // ─── Syscalls declarations ─────────────────────────────────────────
 extern long syscall_read(int fd, void *buf, unsigned long count);
 extern long syscall_write(int fd, const void *buf, unsigned long count);
@@ -131,79 +169,41 @@ static int pm_read_manifest(const char *package_path, PackageManifest *manifest)
         // Parser JSON ultra simplificado (búsqueda de strings)
         char *p = buffer;
         
-        // Buscar "name": "..."
-        p = strstr(buffer, "\"name\"");
-        if(p) {
-            p = strstr(p, "\"");
-            if(p) p++;
-            char *start = p;
-            p = strstr(p, "\"");
-            if(p) {
-                int len = p - start;
-                if(len > 0 && len < 128) {
-                    strncpy(manifest->name, start, len);
-                    manifest->name[len] = 0;
-                }
-            }
+        pm_parse_json_string(manifest->name, sizeof(manifest->name), buffer, "\"name\"");
+    pm_parse_json_string(manifest->package_id, sizeof(manifest->package_id), buffer, "\"package_id\"");
+    pm_parse_json_string(manifest->version, sizeof(manifest->version), buffer, "\"version\"");
+    pm_parse_json_string(manifest->description, sizeof(manifest->description), buffer, "\"description\"");
+    pm_parse_json_string(manifest->author, sizeof(manifest->author), buffer, "\"author\"");
+
+    // Buscar "size_bytes": número (parseo sencillo sin sscanf)
+    p = strstr(buffer, "\"size_bytes\"");
+    if(p) {
+        char *colon = strchr(p, ':');
+        if(colon) {
+            colon++; // avanzar después de ':'
+            while(*colon == ' ' || *colon == '\t') colon++;
+            manifest->size_bytes = (uint32_t)atoi(colon);
         }
-        
-        // Buscar "package_id": "..."
-        p = strstr(buffer, "\"package_id\"");
-        if(p) {
-            p = strstr(p, "\"");
-            if(p) p++;
-            char *start = p;
-            p = strstr(p, "\"");
-            if(p) {
-                int len = p - start;
-                if(len > 0 && len < 64) {
-                    strncpy(manifest->package_id, start, len);
-                    manifest->package_id[len] = 0;
-                }
-            }
-        }
-        
-        // Buscar "version": "..."
-        p = strstr(buffer, "\"version\"");
-        if(p) {
-            p = strstr(p, "\"");
-            if(p) p++;
-            char *start = p;
-            p = strstr(p, "\"");
-            if(p) {
-                int len = p - start;
-                if(len > 0 && len < 16) {
-                    strncpy(manifest->version, start, len);
-                    manifest->version[len] = 0;
-                }
-            }
-        }
-        
-        // Buscar "size_bytes": número (parseo sencillo sin sscanf)
-        p = strstr(buffer, "\"size_bytes\"");
-        if(p) {
-            // Intentar encontrar ':' y parsear el número con atoi (disponible en stdlib.h)
-            char *colon = strchr(p, ':');
-            if(colon) {
-                colon++; // avanzar después de ':'
-                while(*colon == ' ' || *colon == '\t') colon++;
-                manifest->size_bytes = (uint32_t)atoi(colon);
-            } else {
-                manifest->size_bytes = 1024 * 1024;  // default 1MB
-            }
-        }
+    }
     }
     
     // Llenar defaults si no se encontraron todos
     if(!manifest->package_id[0]) {
         const char *last_slash = strrchr(package_path, '/');
-        if(last_slash) strcpy(manifest->package_id, last_slash + 1);
+        if(last_slash) {
+            strncpy(manifest->package_id, last_slash + 1,
+                    sizeof(manifest->package_id) - 1);
+            manifest->package_id[sizeof(manifest->package_id) - 1] = '\0';
+        }
     }
     if(!manifest->name[0]) {
-        strcpy(manifest->name, manifest->package_id);
+        strncpy(manifest->name, manifest->package_id,
+                sizeof(manifest->name) - 1);
+        manifest->name[sizeof(manifest->name) - 1] = '\0';
     }
     if(!manifest->version[0]) {
-        strcpy(manifest->version, "1.0.0");
+        strncpy(manifest->version, "1.0.0", sizeof(manifest->version) - 1);
+        manifest->version[sizeof(manifest->version) - 1] = '\0';
     }
     if(manifest->size_bytes == 0) {
         manifest->size_bytes = 1024 * 1024;
@@ -281,6 +281,7 @@ static int pm_check_reverse_dependencies(PackageManager *pm, const char *package
     // Buscar paquetes que dependen de este
     for(uint32_t i = 0; i < pm->package_count; i++) {
         InstalledPackage *pkg = &pm->packages[i];
+        if(!pkg->manifest.dependencies) continue;
         
         for(int j = 0; j < pkg->manifest.dependency_count; j++) {
             if(strcmp(pkg->manifest.dependencies[j].name, package_id) == 0) {
@@ -509,7 +510,7 @@ int pm_install(PackageManager *pm, const char *package_path)
     }
     
     // 3. Verificar dependencias
-    if(!pm_check_dependencies(pm, manifest.package_id)) {
+    if(!pm_check_dependencies(pm, &manifest)) {
         return -1;  // Missing dependencies
     }
     
@@ -657,19 +658,19 @@ InstalledPackage* pm_find_by_extension(PackageManager *pm, const char *ext)
 
 // ─── Verificar dependencias ──────────────────────────────────────────
 
-int pm_check_dependencies(PackageManager *pm, const char *package_id)
+int pm_check_dependencies(PackageManager *pm, const PackageManifest *manifest)
 {
-    if(!pm || !package_id) return 0;
+    if(!pm || !manifest) return 0;
+    if(manifest->dependency_count <= 0) return 1;
+    if(!manifest->dependencies) return 0;
     
-    InstalledPackage *pkg = pm_find_by_id(pm, package_id);
-    if(!pkg) return 0;
-    
-    // Verificar cada dependencia
-    for(int i = 0; i < pkg->manifest.dependency_count; i++) {
-        Dependency *dep = &pkg->manifest.dependencies[i];
-        InstalledPackage *dep_pkg = pm_find_by_id(pm, dep->name);
-        
-        if(!dep_pkg) {
+    // Verificar cada dependencia declarada en el manifest
+    for(int i = 0; i < manifest->dependency_count; i++) {
+        Dependency *dep = &manifest->dependencies[i];
+        if(!dep->name[0]) {
+            return 0;
+        }
+        if(!pm_find_by_id(pm, dep->name)) {
             // Dependencia no encontrada
             return 0;
         }

@@ -11,18 +11,20 @@
 #include "../../syscalls/fs_syscalls.h"
 
 /* Syscall numbers (mantener sincronizado con userland/libc/syscall.h) */
-#define SYS_YIELD       1
-#define SYS_EXIT        2
-#define SYS_WRITE       3
-#define SYS_READ        4
-#define SYS_FB_WIDTH    5
-#define SYS_FB_HEIGHT   6
-#define SYS_FB_ADDR     7
-#define SYS_SLEEP       10
-#define SYS_WIN_CLEAR   19
-#define SYS_WIN_WRITE   20
-#define SYS_WIN_FILL    21
-#define SYS_GET_TICKS   30
+#define SYS_YIELD         1
+#define SYS_EXIT          2
+#define SYS_WRITE         3
+#define SYS_READ          4
+#define SYS_FB_WIDTH      5
+#define SYS_FB_HEIGHT     6
+#define SYS_FB_ADDR       7
+#define SYS_SLEEP         10
+#define SYS_THREAD_CREATE 11
+#define SYS_THREAD_EXIT   12
+#define SYS_WIN_CLEAR     19
+#define SYS_WIN_WRITE     20
+#define SYS_WIN_FILL      21
+#define SYS_GET_TICKS     30
 
 extern uint32_t  fb_get_width(void);
 extern uint32_t  fb_get_height(void);
@@ -30,10 +32,9 @@ extern uint32_t *fb_get_addr(void);
 extern void      schedule(void);
 extern void      scheduler_yield(void);
 extern uint64_t  scheduler_get_ticks(void);
+extern int       thread_create(void *entry, void *arg, void *stack_bottom, uint64_t stack_size);
+extern void      task_exit(int exit_code);
 
-#ifdef __cplusplus
-extern "C"
-#endif
 uint64_t syscall_handler(uint64_t *regs)
 {
     if (!regs) return (uint64_t)-1;
@@ -42,8 +43,8 @@ uint64_t syscall_handler(uint64_t *regs)
     uint64_t arg1 = regs[5];  /* RDI */
     uint64_t arg2 = regs[4];  /* RSI */
     uint64_t arg3 = regs[3];  /* RDX */
-    uint64_t arg4 = regs[1];  /* R8  */
-    uint64_t arg5 = regs[2];  /* R10 */
+    uint64_t arg4 = regs[2];  /* R10 */
+    uint64_t arg5 = regs[1];  /* R8  */
     uint64_t arg6 = regs[0];  /* R9  */
 
     /* Route filesystem syscalls to the FS dispatcher */
@@ -78,11 +79,14 @@ uint64_t syscall_handler(uint64_t *regs)
         return 0;
 
     case SYS_EXIT:
-        /* arg1 = exit code; terminar la tarea actual */
-        /* Implementación: detener ejecución del proceso actual */
-        /* En el futuro: task_exit((int)arg1) */
-        /* Por ahora: halt infinito para no continuar ejecución */
-        for (;;) asm volatile("hlt");
+        task_exit((int)arg1);
+        return 0;
+
+    case SYS_THREAD_CREATE:
+        return (uint64_t)thread_create((void *)arg1, (void *)arg2, (void *)arg3, arg4);
+
+    case SYS_THREAD_EXIT:
+        task_exit((int)arg1);
         return 0;
 
     case SYS_FB_WIDTH:  return (uint64_t)fb_get_width();

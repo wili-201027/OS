@@ -33,3 +33,14 @@ syscall3:
     mov rdx, rcx    /* a3 -> rdx */
     syscall
     ret
+
+.global syscall4
+syscall4:
+    /* syscall4(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4) */
+    mov rax, rdi    /* n -> rax */
+    mov rdi, rsi    /* a1 -> rdi */
+    mov rsi, rdx    /* a2 -> rsi */
+    mov rdx, rcx    /* a3 -> rdx */
+    mov r10, r8     /* a4 -> r10 */
+    syscall
+    ret

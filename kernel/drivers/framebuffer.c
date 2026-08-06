@@ -1,7 +1,7 @@
 // kernel/drivers/framebuffer.c
 #include <stdint.h>
 #include <stddef.h>
-#include <string.h>
+#include "../string.h"
 
 static uint32_t *s_fb    = (uint32_t*)0;
 static uint32_t  s_w     = 0;

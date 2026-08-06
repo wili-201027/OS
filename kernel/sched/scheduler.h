@@ -19,6 +19,10 @@ typedef struct task {
     void *context;
     void *rsp;
     void *cr3;
+    void *stack_bottom;
+    void *stack_phys;
+    uint64_t stack_size;
+    uint32_t stack_order;
     struct task *next;
     struct task *prev;
 } task_t;
@@ -65,6 +69,8 @@ typedef struct cpu_context {
 void scheduler_add_initial_task(task_t *t);
 
 task_t *scheduler_spawn(void *entry, void *stack_bottom, uint64_t stack_size, int priority);
+int thread_create(void *entry, void *arg, void *stack_bottom, uint64_t stack_size);
+void task_exit(int exit_code);
 void scheduler_yield(void);
 uint32_t scheduler_ready_count(void);
 

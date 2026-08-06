@@ -5,7 +5,7 @@
 #define FILE_TYPES_H
 
 #include <stdint.h>
-#include <string.h>
+#include "../libc/string.h"
 
 // ─── Comparación de strings case-insensitive ───────────────────────────────
 static inline int strcmp_ci(const char *a, const char *b)

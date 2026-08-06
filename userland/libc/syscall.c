@@ -8,13 +8,16 @@ extern uint64_t syscall0(uint64_t n);
 extern uint64_t syscall1(uint64_t n, uint64_t a1);
 extern uint64_t syscall2(uint64_t n, uint64_t a1, uint64_t a2);
 extern uint64_t syscall3(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3);
+extern uint64_t syscall4(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
 
 // Syscall numbers
-#define SYS_YIELD     1
-#define SYS_FB_WIDTH  5
-#define SYS_FB_HEIGHT 6
-#define SYS_FB_ADDR   7
-#define SYS_SLEEP     10
+#define SYS_YIELD         1
+#define SYS_FB_WIDTH      5
+#define SYS_FB_HEIGHT     6
+#define SYS_FB_ADDR       7
+#define SYS_SLEEP         10
+#define SYS_THREAD_CREATE 11
+#define SYS_THREAD_EXIT   12
 #define SYS_FS_LISTDIR    105
 #define SYS_FS_STAT       106
 #define SYS_FS_MKDIR      107
@@ -30,6 +33,16 @@ static int s_sysroot_ready = 0;
 
 void sys_yield() { syscall0(SYS_YIELD); }
 void sys_sleep_ms(uint64_t ms) { syscall1(SYS_SLEEP, ms); }
+int sys_thread_create(void *entry, void *arg, void *stack_bottom, uint64_t stack_size) {
+    return (int)syscall4(SYS_THREAD_CREATE,
+                         (uint64_t)entry,
+                         (uint64_t)arg,
+                         (uint64_t)stack_bottom,
+                         stack_size);
+}
+void sys_thread_exit(int exit_code) {
+    syscall1(SYS_THREAD_EXIT, (uint64_t)exit_code);
+}
 uint32_t fb_get_width() { return (uint32_t)syscall0(SYS_FB_WIDTH); }
 uint32_t fb_get_height() { return (uint32_t)syscall0(SYS_FB_HEIGHT); }
 uint64_t fb_get_addr() { return syscall0(SYS_FB_ADDR); }

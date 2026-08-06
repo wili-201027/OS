@@ -32,45 +32,53 @@ syscall_entry:
     /* Cambiar al GS del kernel (apunta a cpu_local_t) */
     swapgs
 
-    /* Guardar RSP del usuario y cargar RSP del kernel (de cpu_local/TSS)
-     * En esta fase simple usamos la pila del kernel que ya tenemos activa.
-     * Una implementación completa guardaría RSP usuario en cpu_local y
-     * cargaría el RSP del kernel desde ahí. */
-
-    /* Construir el bloque de registros para syscall_handler(uint64_t *regs).
-     * Layout del bloque (offsets de 8B desde RSP, de más bajo a más alto):
-     *   [0]  r9   [1]  r8   [2]  r10   [3]  rdx
-     *   [4]  rsi  [5]  rdi  [6]  rax   [7]  r11 (rflags usuario)
-     *   [8]  rcx (rip usuario)
-     *
-     * Se pushean en orden inverso para que el array quede en orden ascendente.
+    /* Guardar todos los registros de usuario necesarios para reanudar la tarea
+     * si el syscall decide ceder la CPU.
      */
-    push %rcx           /* [8] RIP usuario */
-    push %r11           /* [7] RFLAGS usuario */
-    push %rax           /* [6] número de syscall */
-    push %rdi           /* [5] arg1 */
-    push %rsi           /* [4] arg2 */
-    push %rdx           /* [3] arg3 */
-    push %r10           /* [2] arg4 (en syscalls Linux r10 sustituye rcx) */
-    push %r8            /* [1] arg5 */
-    push %r9            /* [0] arg6 */
+    push %r15
+    push %r14
+    push %r13
+    push %r12
+    push %rbp
+    push %rbx
 
-    /* RSP ahora apunta al bloque → pasarlo como primer argumento */
-    mov  %rsp, %rdi
+    /* Guardar el valor original de RSP antes de empujar los argumentos */
+    lea 48(%rsp), %r12
+
+    push %r9
+    push %r8
+    push %r10
+    push %rdx
+    push %rsi
+    push %rdi
+    push %rax           /* número de syscall */
+    push %r11           /* RFLAGS usuario */
+    push %rcx           /* RIP usuario */
+
+    /* RSP ahora apunta al registro RCX guardado; el arreglo regs[] usa el orden
+     * [r9,r8,r10,rdx,rsi,rdi,rax,r11,rcx] para facilitar el despachador. */
+    lea 64(%rsp), %rdi
     call syscall_handler
     /* Valor de retorno en RAX */
 
-    /* Restaurar en orden inverso */
-    pop %r9
-    pop %r8
-    pop %r10
-    pop %rdx
-    pop %rsi
+    /* Restaurar registros de usuario y preservar el valor de retorno en RAX. */
+    mov %rax, %r10
+    pop %rcx
+    pop %r11
+    pop %rax
+    mov %r10, %rax
     pop %rdi
-    /* Descartar el slot de RAX (ya tenemos el retorno en RAX) */
-    add $8, %rsp
-    pop %r11            /* RFLAGS usuario */
-    pop %rcx            /* RIP usuario */
+    pop %rsi
+    pop %rdx
+    pop %r10
+    pop %r8
+    pop %r9
+    pop %rbx
+    pop %rbp
+    pop %r12
+    pop %r13
+    pop %r14
+    pop %r15
 
     /* Restaurar GS del usuario */
     swapgs

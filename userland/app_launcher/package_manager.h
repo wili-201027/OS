@@ -109,7 +109,7 @@ int pm_disable_package(PackageManager *pm, const char *package_id);
 int pm_get_info(PackageManager *pm, const char *package_id, PackageManifest *manifest);
 
 // Validación
-int pm_check_dependencies(PackageManager *pm, const char *package_id);
+int pm_check_dependencies(PackageManager *pm, const PackageManifest *manifest);
 int pm_check_space(PackageManager *pm, uint32_t required_kb);
 int pm_check_memory(PackageManager *pm, uint32_t required_kb);
 
