@@ -113,7 +113,13 @@ int decode_bmp(const char *filename, Image *img)
     // Asignar memoria para píxeles
     img->width = header.width;
     img->height = header.height;
-    img->pixels = (uint32_t*)malloc(img->width * img->height * sizeof(uint32_t));
+    size_t pixel_count = (size_t)img->width * (size_t)img->height;
+    if(pixel_count > (SIZE_MAX / sizeof(uint32_t))) {
+        syscall_close(fd);
+        return -1;
+    }
+    size_t pixel_bytes = pixel_count * sizeof(uint32_t);
+    img->pixels = (uint32_t*)malloc(pixel_bytes);
     
     if(!img->pixels) {
         syscall_close(fd);
